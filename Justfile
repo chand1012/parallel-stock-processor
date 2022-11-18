@@ -33,30 +33,8 @@ check file:
         rm {{file}}
     fi
 
-fix file:
-    #!/bin/bash
-    set -euo pipefail
-    # read each line and make sure it has 6 columns
-    # if the line has less than 6 columns, delete the line
-    CMD="d"
-    while read -r line; do
-        if [[ $(echo $line | awk -F, '{print NF}') -ne 6 ]]; then
-            echo "Line has less than 6 columns"
-            sed "/$line/d" {{file}} > {{file}}.tmp
-            mv {{file}}.tmp {{file}}
-        fi
-    done < {{file}}
-
-fix-all:
-    #!/bin/bash
-    set -euo pipefail
-    # get all files in data directory
-    files=$(find ./data -type f)
-    echo "Fixing $(ls -1 data | wc -l) files"
-    for file in $files; do
-        echo "Fixing $file"
-        just fix $file
-    done
+fix:
+    go run cmd/fix/fix.go
 
 clean-data:
     rm -rf data

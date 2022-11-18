@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/chand1012/parallel-stock-processor/files"
 	"github.com/chand1012/parallel-stock-processor/stocks"
 )
@@ -25,7 +23,5 @@ func main() {
 			totalClosingPrice += row.Close
 		}
 
-		// print the average closing price
-		fmt.Println(totalClosingPrice / float64(len(data)))
 	}
 }

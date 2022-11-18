@@ -11,7 +11,7 @@ type StockRow struct {
 	High   float64
 	Low    float64
 	Close  float64
-	Volume int64
+	Volume float64
 }
 
 const dateFormat = "2006-01-02"
@@ -46,7 +46,7 @@ func ParseRow(row []string) (StockRow, error) {
 		return stockRow, err
 	}
 
-	stockRow.Volume, err = strconv.ParseInt(row[5], 10, 64)
+	stockRow.Volume, err = strconv.ParseFloat(row[5], 64)
 	if err != nil {
 		return stockRow, err
 	}
