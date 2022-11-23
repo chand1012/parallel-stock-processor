@@ -9,10 +9,6 @@ clean:
 run:
     go run main.go
 
-get stock:
-    mkdir -p data
-    curl -o ./data/{{stock}}.csv "https://stooq.com/q/d/l/?s={{stock}}.us&i=d"
-
 get-all:
     #!/bin/bash
     set -euo pipefail
@@ -23,6 +19,12 @@ get-all:
         fi
         just check data/$stock.csv
     done < tickers.txt
+
+zip-all:
+    zip -r data.zip data
+
+unzip-all:
+    unzip data.zip
 
 check file:
     #!/bin/bash
