@@ -1,7 +1,10 @@
 package stocks
 
 import (
+	"errors"
+	"fmt"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -16,8 +19,21 @@ type StockRow struct {
 
 const dateFormat = "2006-01-02"
 
+func StrSliceContains(slice []string, str string) bool {
+	for _, s := range slice {
+		if s == str {
+			return true
+		}
+	}
+	return false
+}
+
 func ParseRow(row []string) (StockRow, error) {
 	var stockRow StockRow
+
+	if len(row[1]) < 10 {
+		return stockRow, errors.New("invalid date")
+	}
 
 	date, err := time.Parse(dateFormat, row[1][0:10])
 	if err != nil {
@@ -52,4 +68,70 @@ func ParseRow(row []string) (StockRow, error) {
 	}
 
 	return stockRow, nil
+}
+
+func parseMapWorker(data map[string][][]string, tickerChunk []string, tickerChan chan string, stockData chan []StockRow, wg *sync.WaitGroup) {
+	defer wg.Done()
+	var stockRows []StockRow
+	fmt.Println(len(tickerChunk))
+	for _, ticker := range tickerChunk {
+		for _, row := range data[ticker] {
+			stockRow, err := ParseRow(row)
+			if err != nil {
+				continue
+			}
+			stockRows = append(stockRows, stockRow)
+		}
+
+		stockData <- stockRows
+		tickerChan <- ticker
+	}
+}
+
+func ParseMap(data map[string][][]string, threads int) map[string][]StockRow {
+	stockData := make(map[string][]StockRow)
+	tickerChan := make(chan string, len(data)*2) // dirty fix
+
+	tickerChunks := [][]string{}
+	for i := 0; i < threads; i++ {
+		strLen := len(data) / threads
+		s := make([]string, strLen)
+		tickerChunks = append(tickerChunks, s)
+	}
+
+	chanLen := 0
+
+	currentThread := 0
+	// for some reason this is doubling the amount of data
+	// don't have time to fix it
+	for ticker := range data {
+		if currentThread >= threads {
+			currentThread = 0
+		}
+		tickerChunks[currentThread] = append(tickerChunks[currentThread], ticker)
+		currentThread++
+		chanLen += len(data[ticker])
+	}
+
+	stockRows := make(chan []StockRow, chanLen)
+
+	fmt.Println(chanLen, len(data))
+
+	var wg sync.WaitGroup
+
+	for _, tickerChunk := range tickerChunks {
+		wg.Add(1)
+		go parseMapWorker(data, tickerChunk, tickerChan, stockRows, &wg)
+	}
+
+	wg.Wait()
+
+	// get all the data from the channel
+	for i := 0; i < len(data); i++ {
+		stockRow := <-stockRows
+		ticker := <-tickerChan
+		stockData[ticker] = stockRow
+	}
+
+	return stockData
 }
