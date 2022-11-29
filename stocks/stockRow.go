@@ -2,7 +2,6 @@ package stocks
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -15,6 +14,7 @@ type StockRow struct {
 	Low    float64
 	Close  float64
 	Volume float64
+	Ticker string
 }
 
 const dateFormat = "2006-01-02"
@@ -34,6 +34,8 @@ func ParseRow(row []string) (StockRow, error) {
 	if len(row[1]) < 10 {
 		return stockRow, errors.New("invalid date")
 	}
+
+	stockRow.Ticker = row[0]
 
 	date, err := time.Parse(dateFormat, row[1][0:10])
 	if err != nil {
@@ -73,7 +75,7 @@ func ParseRow(row []string) (StockRow, error) {
 func parseMapWorker(data map[string][][]string, tickerChunk []string, tickerChan chan string, stockData chan []StockRow, wg *sync.WaitGroup) {
 	defer wg.Done()
 	var stockRows []StockRow
-	fmt.Println(len(tickerChunk))
+	// fmt.Println(len(tickerChunk))
 	for _, ticker := range tickerChunk {
 		for _, row := range data[ticker] {
 			stockRow, err := ParseRow(row)
@@ -114,8 +116,6 @@ func ParseMap(data map[string][][]string, threads int) map[string][]StockRow {
 	}
 
 	stockRows := make(chan []StockRow, chanLen)
-
-	fmt.Println(chanLen, len(data))
 
 	var wg sync.WaitGroup
 
