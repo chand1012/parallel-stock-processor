@@ -7,7 +7,6 @@ import (
 )
 
 func loadFile(fileName string, tickerName chan string, fileData chan [][]string, errs chan error) {
-	// defer wg.Done()
 	// load the file
 	data, err := LoadCSV(fileName)
 	if fileName == "" {
@@ -51,6 +50,7 @@ func GetAllFiles(dir string, threads int) (map[string][][]string, error) {
 	// create a channel to send the errors to
 	errs := make(chan error, len(files))
 
+	// allocates the string arrays for each thread
 	fileNameChunks := [][]string{}
 	for i := 0; i < threads; i++ {
 		strLen := len(files) / threads
@@ -60,6 +60,7 @@ func GetAllFiles(dir string, threads int) (map[string][][]string, error) {
 
 	currentThread := 0
 
+	// chunks the files into the number of threads
 	for _, file := range files {
 		if currentThread >= threads {
 			currentThread = 0
@@ -68,6 +69,7 @@ func GetAllFiles(dir string, threads int) (map[string][][]string, error) {
 		currentThread++
 	}
 
+	// creates a thread for each chunk of files
 	for _, fileNames := range fileNameChunks {
 		wg.Add(1)
 		go loadFileWorker(fileNames, tickerName, fileData, errs, &wg)

@@ -25,16 +25,20 @@ func main() {
 	flag.Parse()
 
 	// get NUM_THREADS from env
+	// This gets parsed to an int64 to determine
+	// the number of threads to use
 	num_threads := os.Getenv("NUM_THREADS")
 	if num_threads == "" {
 		num_threads = "1"
 	}
 
+	// Sets if we should be verbose or not
 	run_verbose := os.Getenv("VERBOSE")
 	if run_verbose == "" {
 		run_verbose = "false"
 	}
 
+	// parses the comma separated tickers into an array
 	var tickers []string
 	if *tickersFlag != "" {
 		// split the tickers by comma
@@ -43,11 +47,13 @@ func main() {
 		tickers = []string{}
 	}
 
+	// parses the number of threads into an int64
 	threads, err := strconv.ParseInt(num_threads, 10, 64)
 	if err != nil {
 		panic(err)
 	}
 
+	// parses the verbose flag into a bool
 	var verbose bool
 	if run_verbose != "" {
 		verbose = true
@@ -60,6 +66,8 @@ func main() {
 	}
 
 	start := time.Now()
+	// loads all the files using the number of threads given.
+	// Loads all files in the "data" directory
 	csvData, err := files.GetAllFiles("data", int(threads))
 	if err != nil {
 		panic(err)
@@ -72,19 +80,26 @@ func main() {
 
 	start = time.Now()
 
+	// creates a channel to pass the data to.
+	// Basically a queue that works across threads
 	rowChan := make(chan []stocks.StockRow, len(tickers))
 	var wg sync.WaitGroup
 
 	for _, ticker := range tickers {
-		wg.Add(1)
+		wg.Add(1) // adds a thread to the wait group
+		// creates a thread to process the data
 		go func(data [][]string, rowChan chan []stocks.StockRow) {
+			// defer finishing the thread until after the function is done
 			defer wg.Done()
+			// processes the data
 			row, err := stocks.ParseCSV(data)
 			if err != nil {
+				// crashes the program and all threads if there is an error
 				panic(err)
 			}
+			// puts the data into the channel
 			rowChan <- row
-		}(csvData[ticker], rowChan)
+		}(csvData[ticker], rowChan) // executes the thread
 	}
 
 	wg.Wait()
