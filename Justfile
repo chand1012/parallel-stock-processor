@@ -6,8 +6,8 @@ build:
 clean:
     rm -f process
 
-run:
-    go run main.go
+run threads mode="gain" tickers="AAPL,MSFT,GOOG,TSLA,AMZN,INTC,AMD,NVDA":
+    NUM_THREADS={{threads}} go run main.go -tickers {{tickers}} -mode {{mode}}
 
 get-all:
     #!/bin/bash
@@ -40,3 +40,6 @@ fix:
 
 clean-data:
     rm -rf data
+
+get stock:
+    python scripts/get_a_stock.py {{stock}}
